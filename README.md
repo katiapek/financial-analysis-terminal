@@ -1,33 +1,113 @@
-# Markets Manners
+# Financial Analysis Terminal
 
-Institutional-grade positioning, seasonality, and regime analysis for futures & options traders.
+Automated data pipeline for futures market analysis — COT positioning, price indicators, seasonal patterns, and publication-quality charting.
 
-## What This Is
+![COT Positioning — Gold](docs/images/cot_GC.png)
 
-An automated data pipeline and report generation system that:
+## Overview
 
-- Ingests weekly CFTC Commitment of Traders (COT) positioning data
-- Computes regime classifications based on positioning, seasonality, volatility, and CTA flow models
-- Generates a weekly analytical report for commodity and equity index futures markets
-- Produces publication-quality charts for social media distribution
+An end-to-end Python pipeline that ingests public market data, computes statistical indicators, and generates branded analytical charts. Built as a portfolio project demonstrating data engineering, statistical computation, and visualization for financial markets.
 
-## Markets Covered
+**What it does:**
+- Pulls weekly CFTC Commitment of Traders (COT) positioning data for 4 futures markets
+- Fetches daily OHLCV price data via yfinance
+- Computes positioning analytics: z-scores (1yr/3yr/5yr), percentile ranks, 26-week index, rate of change
+- Computes price indicators: SMAs (20/50/100/200), ATR (14/20-day), Donchian channels (20/50-day)
+- Builds seasonal return matrices by week-of-year with win rates and standard deviation
+- Generates publication-quality dark-themed charts optimized for social media (1200x675)
 
-| Market | Complex | Key Analysis |
-|--------|---------|-------------|
-| NQ (E-mini Nasdaq 100) | Equity Index | TFF positioning, CTA levels, weekly options regimes |
-| GC (Gold) | Precious Metals | Commercial hedging, macro regime, seasonal patterns |
-| CL (WTI Crude Oil) | Energy | Producer positioning, OPEC cycles, seasonal + regime |
-| ZC (Corn) | Agriculture | Planting/harvest seasonality, USDA cycle regimes |
+## Markets
+
+| Symbol | Market | Report Type | Complex |
+|--------|--------|-------------|---------|
+| **NQ** | E-mini Nasdaq 100 | TFF | Equity Index |
+| **GC** | Gold | Disaggregated | Metals |
+| **CL** | WTI Crude Oil | Disaggregated | Energy |
+| **ZC** | Corn | Disaggregated | Agriculture |
+
+## Sample Output
+
+### COT Positioning (Managed Money Net + Z-Score)
+![COT Positioning — Gold](docs/images/cot_GC.png)
+
+### Seasonal Returns (Week-of-Year, 10yr Average)
+![Seasonal Returns — Nasdaq](docs/images/seasonal_NQ.png)
+
+### Price + Moving Averages (with Donchian Channel)
+![Price + MA — Gold](docs/images/price_ma_GC.png)
+
+## Architecture
+
+```
+src/
+├── data/
+│   ├── config.py        # Market definitions, CFTC codes, column mappings
+│   ├── cot.py           # COT data ingestion + Parquet caching
+│   └── prices.py        # Price data ingestion + technical indicators
+├── models/
+│   ├── positioning.py   # Z-scores, percentile ranks, 26-week index
+│   └── seasonal.py      # Week-of-year return analysis
+└── viz/
+    ├── styles.py        # Color palette, fonts, chart branding
+    └── charts.py        # COT, seasonal, and price chart generators
+
+tests/
+├── test_cot.py          # 22 tests — COT pipeline for all 4 markets
+├── test_prices.py       # 40 tests — price indicators for all 4 markets
+└── test_seasonal.py     # 20 tests — seasonal matrix for all 4 markets
+```
 
 ## Tech Stack
 
-Python · pandas · matplotlib · yfinance · CFTC COT API · CME CVOL API
+- **Python 3.12** — core language
+- **pandas / numpy** — data manipulation and computation
+- **matplotlib** — publication-quality chart rendering
+- **yfinance** — daily OHLCV price data
+- **cot_reports** — CFTC Commitment of Traders data
+- **pytest** — 82 tests across all modules
+- **Parquet** — two-layer caching (raw + processed)
 
-## Author
+## Quick Start
 
-[@marketsmanners](https://x.com/marketsmanners) — 6 years in capital markets (futures derivatives, options on futures)
+```bash
+# Clone
+git clone https://github.com/katiapek/financial-analysis-terminal.git
+cd financial-analysis-terminal
+
+# Set up virtual environment
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run tests
+pytest -v
+
+# Generate charts
+python -c "
+from src.viz.charts import chart_cot_positioning, chart_seasonal, chart_price_ma
+chart_cot_positioning('GC')
+chart_seasonal('NQ')
+chart_price_ma('GC')
+print('Charts saved to output/charts/')
+"
+```
+
+## Testing
+
+```bash
+pytest -v
+# 82 tests: COT positioning (22) + price indicators (40) + seasonal analysis (20)
+```
+
+## Data Sources
+
+- **CFTC COT Reports** — weekly Commitment of Traders data (Disaggregated + Traders in Financial Futures)
+- **Yahoo Finance** — daily OHLCV futures price data
+
+## License
+
+MIT — see [LICENSE](LICENSE)
 
 ## Disclaimer
 
-This project is for educational and informational purposes only. Nothing produced by this system constitutes investment advice or a recommendation to buy or sell any securities. Trading futures and options involves substantial risk of loss. Past performance is not indicative of future results.
+This project is for educational and portfolio purposes only. Nothing produced by this system constitutes investment advice. Trading futures and options involves substantial risk of loss.
