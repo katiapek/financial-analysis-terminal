@@ -1,0 +1,17 @@
+[project]
+name = "markets-manners"
+version = "0.1.0"
+description = "Institutional-grade positioning, seasonality, and regime analysis for futures & options traders"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Kamil", email = "marketsmanners@gmail.com"},
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

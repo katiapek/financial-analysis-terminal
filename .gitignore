@@ -1,0 +1,57 @@
+# Data files (too large, regenerable)
+data/raw/*
+data/processed/*
+output/charts/*
+output/reports/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!output/charts/.gitkeep
+!output/reports/.gitkeep
+
+# Business strategy & internal docs
+Documentation/
+Agents/
+CLAUDE.md
+
+# Personal files (CVs, guides, etc.)
+*.docx
+*.pdf
+github_profile_README.md
+
+# cot_reports temp files (downloaded by library)
+FinComYY.txt
+c_year.txt
+
+# Cached model data (regenerable)
+src/models/data/
+
+# Notebooks with analysis output
+notebooks/*.ipynb
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+secrets.yaml
+
+# Old app (preserved for reference, not part of new build)
+old_app/
