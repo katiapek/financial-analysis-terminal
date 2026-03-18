@@ -203,6 +203,7 @@ def build_weekly_dataset(
 
     df = fetch_prices(symbol, start, end, force_refresh)
     weekly = compute_weekly_returns(df)
+    weekly = compute_moving_averages(weekly)
 
     DATA_PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     weekly.to_parquet(processed_path)

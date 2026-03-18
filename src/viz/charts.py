@@ -280,7 +280,6 @@ def chart_cot_momentum(
 
     ax3.set_ylim(-3.5, 3.5)
 
-
     # --- Branding ---
     add_title(ax1, f"{symbol} | {GROUP_LABELS[group]} — Positioning Momentum",
               f"Week of {date.today().strftime('%b %d, %Y')} | Source: CFTC COT")
@@ -354,17 +353,8 @@ def chart_seasonal(
     if current_week in sm.index:
         val = sm.loc[current_week, f'mean_return_{label}'] * 100
         ax.bar(current_week, val, width=0.9, color=COLORS['current_week'], alpha=0.2)
-
         win_rate = sm.loc[current_week, f'win_rate_{label}']
-        ax.annotate(
-            f'Week {current_week}\n{val:+.2f}\nWR: {win_rate:.0f}%',
-            xy=(current_week, val),
-            xytext=(current_week + 4, val),
-            fontsize=FONT['annotation'],
-            color=COLORS['current_week'],
-            arrowprops=dict(arrowstyle="-", color=COLORS["current_week"], alpha=0.5),
-            va='center',
-        )
+        std = sm.loc[current_week, f'std_{label}'] * 100
 
     # Average line
     avg = sm[f"mean_return_{label}"].mean() * 100
@@ -379,8 +369,11 @@ def chart_seasonal(
     ax.set_ylabel("Avg Weekly Return (%)", fontsize=FONT["label"])
     ax.set_xlim(0.5, 53.5)
 
-    add_title(ax, f"{symbol} | Seasonal Returns ({lookback}yr)",
-              f"Current: Week {current_week} | Source: yfinance")
+    subtitle = f"Week {current_week}"
+    if current_week in sm.index:
+        subtitle += f" | {val:+.2f}% | WR: {win_rate:.0f}% | σ: {std:.2f}%"
+    subtitle += " | Source: yfinance"
+    add_title(ax, f"{symbol} | Seasonal Returns ({lookback}yr)", subtitle)
     add_watermark(fig)
     add_signature_stripe(fig)
     add_source(fig, f"Source: yfinance | {lookback}-year average | @marketsmanners")
@@ -391,13 +384,13 @@ def chart_seasonal(
     return fig
 
 
-def chart_price_ma(
+def chart_price_daily(
       symbol: str,
       lookback_days: int = 252,
       save: bool = True,
 ) -> plt.Figure:
     """
-    Price + moving average overlay with Donchian channel.
+    Daily price + moving average overlay with Donchian channel.
     """
     apply_style()
     df = build_price_dataset(symbol)
@@ -443,5 +436,71 @@ def chart_price_ma(
 
     if save:
         save_chart(fig, f"price_ma_{symbol}.png")
+
+    return fig
+
+
+def chart_price_weekly(
+        symbol: str,
+        lookback_years: int = 3,
+        save: bool = True,
+) -> plt.Figure:
+    """
+    Weekly price with moving averages and COT open interest.
+
+    Top panel shows weekly close with 20w, 50w, 100w, 200w SMAs.
+    Bottom panel shows total open interest from COT data as bars.
+    """
+    apply_style()
+    df = build_weekly_dataset(symbol)
+    cot = build_cot_dataset(symbol)
+
+    # Filter to lookback
+    cutoff = pd.Timestamp(date.today()) - pd.DateOffset(years=lookback_years)
+    df = df[df.index > cutoff]
+    cot = cot[cot.index > cutoff]
+
+    fig, (ax1, ax2) = plt.subplots(
+        nrows=2, ncols=1, figsize=[8, 4.5],
+        gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.3}
+    )
+
+    # Top panel — weekly price + MAs
+    ax1.plot(df.index, df['close'], color=COLORS['price'],
+             linewidth=1.2, label='Price')
+
+    for ma, color, lw in [
+        ('sma_200', COLORS['sma_200'], 1.8),
+        ('sma_100', COLORS['sma_100'], 1.4),
+        ('sma_50', COLORS['sma_50'], 1.0),
+        ('sma_20', COLORS['sma_20'], 0.8),
+    ]:
+        ax1.plot(df.index, df[ma], color=color, linewidth=lw)
+        last_val = df[ma].dropna().iloc[-1]
+        ax1.annotate(
+            f" {ma.upper().replace('_', ' ')}",
+            xy=(df.index[-1], last_val),
+            fontsize=FONT['annotation'],
+            color=color,
+            va='center',
+        )
+
+    ax1.set_ylabel('Price', fontsize=FONT['label'])
+    ax1.tick_params(labelbottom=False)
+
+    # Bottom panel — open interest
+    ax2.bar(cot.index, cot['open_interest'], color=COLORS['accent'],
+            width=5, alpha=0.4)
+    ax2.set_ylabel('Open Interest', fontsize=FONT['label'])
+
+    # --- Branding ---
+    add_title(ax1, f"{symbol} | Weekly Price & Open Interest",
+              f"As of {date.today().strftime('%b %d, %Y')} | Source: yfinance + CFTC")
+    add_watermark(fig)
+    add_signature_stripe(fig)
+    add_source(fig, f"Source: yfinance + CFTC COT | @marketsmanners")
+
+    if save:
+        save_chart(fig, f"price_weekly_{symbol}.png")
 
     return fig

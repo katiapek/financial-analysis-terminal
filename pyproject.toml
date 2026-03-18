@@ -5,7 +5,7 @@ description = "Institutional-grade positioning, seasonality, and regime analysis
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "Kamil", email = "marketsmanners@gmail.com"},
+    {name = "Kamil", email = "kaluznykamil@gmail.com"},
 ]
 
 [tool.pytest.ini_options]
