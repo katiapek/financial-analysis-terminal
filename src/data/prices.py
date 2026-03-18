@@ -64,6 +64,7 @@ def fetch_prices(
 
     return df
 
+
 def compute_moving_averages(
         df: pd.DataFrame,
         windows: list[int] = [20, 50, 100, 200],
@@ -82,6 +83,7 @@ def compute_moving_averages(
         df[f"sma_{w}"] = df["close"].rolling(window=w).mean()
 
     return df
+
 
 def compute_atr(
         df: pd.DataFrame,

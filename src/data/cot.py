@@ -88,6 +88,7 @@ def _download_cot_range(
             print(f"Skipping {year}: {e}")
     return pd.concat(frames, ignore_index=True)
 
+
 def compute_net_positions(df: pd.DataFrame) -> pd.DataFrame:
     """Add net position columns for all trader categories."""
     df = df.copy()

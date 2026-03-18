@@ -33,8 +33,8 @@ COLORS = {
     "neutral": "#6b7280",
 
     # Data series (COT positioning)
-    "spec_net": "#3b82f6",
-    "comm_net": "#f59e0b",
+    "spec": "#3b82f6",
+    "comm": "#f59e0b",
     "asset_mgr": "#8b5cf6",
     "swap": "#ec4899",
 
@@ -62,8 +62,8 @@ WATERMARK_TEXT = "@marketsmanners"
 
 # --- Font Sizes ---
 FONT = {
-    "title": 16,
-    "subtitle": 11,
+    "title": 14,
+    "subtitle": 10,
     "label": 10,
     "tick": 8,
     "watermark": 24,
@@ -161,9 +161,9 @@ def add_signature_stripe(fig):
 def add_title(ax, title: str, subtitle: str = ""):
     """Add styled title and optional subtitle."""
     ax.set_title(title, fontsize=FONT["title"], fontweight="bold",
-                 color=COLORS["text"], pad=15)
+                 color=COLORS["text"], pad=22)
     if subtitle:
-        ax.text(0.5, 1.02, subtitle, transform=ax.transAxes,
+        ax.text(0.5, 1.015, subtitle, transform=ax.transAxes,
                 fontsize=FONT["subtitle"], color=COLORS["text_muted"],
                 ha="center", va="bottom")
 
