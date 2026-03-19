@@ -9,8 +9,9 @@ from pathlib import Path
 
 from src.data.config import MARKETS
 
-DATA_RAW_DIR = Path('data/raw')
-DATA_PROCESSED_DIR = Path('data/processed')
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DATA_RAW_DIR = _PROJECT_ROOT / "data" / "raw"
+DATA_PROCESSED_DIR = _PROJECT_ROOT / "data" / "processed"
 
 
 def fetch_prices(

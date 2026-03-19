@@ -15,8 +15,9 @@ _REPORT_TYPE_MAP = {
     "disaggregated": "disaggregated_futopt"
 }
 
-DATA_RAW_DIR = Path("data/raw")
-DATA_PROCESSED_DIR = Path("data/processed")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DATA_RAW_DIR = _PROJECT_ROOT / "data" / "raw"
+DATA_PROCESSED_DIR = _PROJECT_ROOT / "data" / "processed"
 
 
 def fetch_cot(
@@ -61,6 +62,7 @@ def fetch_cot(
 
     # --- Parse date index ---
     df['date'] = pd.to_datetime(df['Report_Date_as_YYYY-MM-DD'])
+    df = df.dropna(subset=['date'])
     df = df.set_index("date").sort_index()
 
     # --- Select and rename columns ---
@@ -72,6 +74,7 @@ def fetch_cot(
     result = result[~result.index.duplicated(keep='last')]
 
     return result
+
 
 def _download_cot_range(
         lib_report_type: str,
