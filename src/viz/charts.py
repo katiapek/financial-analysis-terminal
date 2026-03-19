@@ -14,6 +14,7 @@ from src.viz.styles import (
 from src.data.cot import build_cot_dataset
 from src.data.prices import build_price_dataset, build_weekly_dataset
 from src.models.seasonal import compute_seasonal_matrix
+from src.models.analogs import find_analogs, get_analog_paths, TRIGGER_LABELS
 
 from src.data.config import MARKETS
 
@@ -737,5 +738,183 @@ def chart_price_weekly(
 
     if save:
         save_chart(fig, f"price_weekly_{symbol}.png")
+
+    return fig
+
+
+def chart_analog(
+        symbol: str,
+        group: str = 'spec',
+        trigger: str = 'zscore',
+        threshold: float = 2.0,
+        z_window: str = '3yr',
+        cooldown_weeks: int = 8,
+        forward_weeks: int = 8,
+        save: bool = True,
+) -> plt.Figure:
+    """
+    Historical analog chart — spaghetti plot of price paths from past
+    instances where the same positioning trigger fired.
+
+    Top panel: normalized price paths (rebased to 0% at signal date),
+    with median path highlighted.
+    Bottom panel: summary stats table (median return, win rate per horizon).
+    """
+    apply_style()
+
+    # Use find_analogs' default horizons (includes 12w if user added it)
+    analogs = find_analogs(
+        symbol, group, trigger, threshold, z_window,
+        cooldown_weeks,
+    )
+
+    if analogs.empty:
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, "No analogs found for these parameters",
+                transform=ax.transAxes, ha='center', va='center',
+                fontsize=FONT['label'], color=COLORS['text_muted'])
+        ax.axis('off')
+        return fig
+
+    # Extract horizons from the actual columns returned
+    horizons = analogs.attrs.get('forward_weeks', [1, 2, 4, 8, 12])
+    summary = analogs.attrs.get('summary', {})
+    n_signals = len(analogs)
+    max_horizon = max(horizons)
+
+    # Get daily price paths for spaghetti plot
+    paths = get_analog_paths(symbol, analogs.index.tolist(), max_horizon)
+
+    fig, (ax1, ax2) = plt.subplots(
+        nrows=2, ncols=1, figsize=[8, 5.5],
+        gridspec_kw={'height_ratios': [3, 1.4], 'hspace': 0.5},
+    )
+
+    # --- Top panel: spaghetti price paths ---
+    if not paths.empty:
+        trading_days = paths.index
+
+        # Individual paths (thin, transparent)
+        for col in paths.columns:
+            ax1.plot(trading_days, paths[col],
+                     color=COLORS['text_muted'], linewidth=0.7, alpha=0.4)
+
+        # Median path (bold)
+        median_path = paths.median(axis=1)
+        ax1.plot(trading_days, median_path,
+                 color=COLORS['accent'], linewidth=2.5, label='Median')
+
+        # Shade between 25th and 75th percentile
+        p25 = paths.quantile(0.25, axis=1)
+        p75 = paths.quantile(0.75, axis=1)
+        ax1.fill_between(trading_days, p25, p75,
+                         color=COLORS['accent'], alpha=0.15)
+
+    ax1.axhline(0, color=COLORS['text_muted'], linewidth=0.8,
+                linestyle='--', alpha=0.5)
+
+    # Mark horizon weeks on x-axis
+    for weeks in horizons:
+        td = weeks * 5  # approximate trading days
+        if td <= ax1.get_xlim()[1]:
+            ax1.axvline(td, color=COLORS['grid'], linewidth=0.5,
+                        linestyle=':', alpha=0.5)
+            ax1.text(td, ax1.get_ylim()[1] * 0.9, f'{weeks}w',
+                     fontsize=FONT['tick'], color=COLORS['text_muted'],
+                     ha='center', va='top')
+
+    ax1.set_ylabel('Return (%)', fontsize=FONT['label'])
+    ax1.tick_params(labelbottom=True)
+
+    # --- Bottom panel: summary stats table ---
+    ax2.axis('off')
+
+    if summary:
+        col_labels = [f'+{h}w' for h in horizons if f'{h}w' in summary]
+        row_labels = ['Median', 'Win Rate', 'Best', 'Worst']
+
+        table_data = []
+        for row_label in row_labels:
+            row = []
+            for h in horizons:
+                key = f'{h}w'
+                if key not in summary:
+                    row.append('—')
+                    continue
+                s = summary[key]
+                if row_label == 'Median':
+                    row.append(f"{s['median']:+.1f}%")
+                elif row_label == 'Win Rate':
+                    row.append(f"{s['win_rate']:.0f}%")
+                elif row_label == 'Best':
+                    row.append(f"{s['best']:+.1f}%")
+                elif row_label == 'Worst':
+                    row.append(f"{s['worst']:+.1f}%")
+            table_data.append(row)
+
+        table = ax2.table(
+            cellText=table_data,
+            rowLabels=row_labels,
+            colLabels=col_labels,
+            loc='center',
+            cellLoc='center',
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(FONT['tick'])
+        table.scale(0.8, 1.4)
+
+        # Style the table
+        for key, cell in table.get_celld().items():
+            cell.set_edgecolor(COLORS['grid'])
+            cell.set_facecolor(COLORS['bg_panel'])
+            cell.set_text_props(color=COLORS['text'])
+
+            # Header row
+            if key[0] == 0:
+                cell.set_facecolor(COLORS['accent'])
+                cell.set_alpha(0.3)
+                cell.set_text_props(fontweight='bold', color=COLORS['text'])
+
+            # Row labels
+            if key[1] == -1:
+                cell.set_text_props(fontweight='bold', color=COLORS['text_muted'])
+
+            # Color median row values by sign
+            if key[0] == 1 and key[1] >= 0:  # Median row
+                text = cell.get_text().get_text()
+                if text.startswith('+'):
+                    cell.set_text_props(color=COLORS['bull'])
+                elif text.startswith('-'):
+                    cell.set_text_props(color=COLORS['bear'])
+
+    # --- Title ---
+    direction = "above" if threshold >= 0 else "below"
+    trigger_label = TRIGGER_LABELS.get(trigger, trigger)
+
+    if trigger == 'zscore':
+        desc = f"z{z_window} {direction} {threshold:+.1f}"
+    elif trigger == 'flip':
+        desc = "short to long" if threshold >= 0 else "long to short"
+    elif trigger == 'roc':
+        desc = f"RoC z-score {direction} {threshold:+.1f}"
+    elif trigger == 'divergence':
+        desc = f"spec-comm spread {direction} {threshold:+.1f}"
+    elif trigger == 'percentile':
+        desc = f"percentile {direction} {threshold:.0f}"
+    else:
+        desc = f"{threshold:+.1f}"
+
+    add_title(
+        ax1,
+        f"{symbol} | {GROUP_LABELS[group]} — {trigger_label}",
+        f"{desc} | {n_signals} instances | Source: CFTC COT + yfinance",
+    )
+    add_watermark(fig)
+    add_signature_stripe(fig)
+    add_source(fig)
+
+    if save:
+        fname = f"analog_{symbol}_{group}_{trigger}.png"
+        save_chart(fig, fname)
 
     return fig
