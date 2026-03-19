@@ -1,12 +1,14 @@
 # Financial Analysis Terminal
 
-Automated data pipeline for futures market analysis — COT positioning, price indicators, seasonal patterns, and publication-quality charting.
+> **Note:** This repo contains the open-source data infrastructure layer. Active development continues in a private repository.
+
+Automated data pipeline for futures market analysis — COT positioning, price indicators, seasonal patterns, historical analogs, and publication-quality charting.
 
 ![COT Positioning — Gold](docs/images/cot_GC.png)
 
 ## Overview
 
-An end-to-end Python pipeline that ingests public market data, computes statistical indicators, and generates branded analytical charts. Built as a portfolio project demonstrating data engineering, statistical computation, and visualization for financial markets.
+An end-to-end Python pipeline that ingests public market data, computes statistical indicators, detects positioning extremes, and generates branded analytical charts. Built as a portfolio project demonstrating data engineering, statistical computation, and visualization for financial markets.
 
 **What it does:**
 - Pulls weekly CFTC Commitment of Traders (COT) positioning data for 4 futures markets
@@ -14,6 +16,9 @@ An end-to-end Python pipeline that ingests public market data, computes statisti
 - Computes positioning analytics: z-scores (1yr/3yr/5yr), percentile ranks, 26-week index, rate of change
 - Computes price indicators: SMAs (20/50/100/200), ATR (14/20-day), Donchian channels (20/50-day)
 - Builds seasonal return matrices by week-of-year with win rates and standard deviation
+- Detects positioning extremes across 5 trigger types (z-score, positioning flips, rate of change, spec/commercial divergence, percentile extremes)
+- Generates historical analog analysis: "last N times positioning was this extreme, here's what happened"
+- Produces cross-market positioning heatmaps for at-a-glance weekly review
 - Generates publication-quality dark-themed charts optimized for social media (1200x675)
 
 ## Markets
@@ -36,6 +41,12 @@ An end-to-end Python pipeline that ingests public market data, computes statisti
 ### Price + Moving Averages (with Donchian Channel)
 ![Price + MA — Gold](docs/images/price_ma_GC.png)
 
+### Cross-Market Positioning Heatmap
+![Positioning Heatmap](docs/images/heatmap.png)
+
+### Historical Analog (Forward Returns After Positioning Extreme)
+![Historical Analog — Corn](docs/images/analog_ZC.png)
+
 ## Architecture
 
 ```
@@ -46,10 +57,15 @@ src/
 │   └── prices.py        # Price data ingestion + technical indicators
 ├── models/
 │   ├── positioning.py   # Z-scores, percentile ranks, 26-week index
-│   └── seasonal.py      # Week-of-year return analysis
+│   ├── seasonal.py      # Week-of-year return analysis
+│   └── analogs.py       # Historical analog engine (5 trigger types + scanner)
 └── viz/
     ├── styles.py        # Color palette, fonts, chart branding
-    └── charts.py        # COT, seasonal, and price chart generators
+    └── charts.py        # COT, seasonal, price, heatmap, and analog charts
+
+notebooks/
+├── 01_cot_exploration.ipynb    # Weekly COT analysis workflow
+└── 02_seasonal_analysis.ipynb  # Weekly price/seasonal workflow
 
 tests/
 ├── test_cot.py          # 22 tests — COT pipeline for all 4 markets
