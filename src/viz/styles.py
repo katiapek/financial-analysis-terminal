@@ -8,6 +8,7 @@ Substack reports, and dashboard views.
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.patches as mpatches
+from datetime import date
 from pathlib import Path
 
 # --- Dimensions (X/Twitter optimized, 16:9) ---
@@ -16,7 +17,8 @@ CHART_HEIGHT = 675
 CHART_DPI = 150
 CHART_FIGSIZE = (CHART_WIDTH / CHART_DPI, CHART_HEIGHT / CHART_DPI)  # 8 x 4.5 inches
 
-OUTPUT_DIR = Path("output/charts")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+OUTPUT_DIR = _PROJECT_ROOT / "output" / "charts"
 
 # --- Color Palette ---
 COLORS = {
@@ -181,9 +183,10 @@ def add_source(fig, source_text: str = "Source: CFTC COT | @marketsmanners"):
 
 
 def save_chart(fig, filename: str):
-    """Save chart to output directory."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    filepath = OUTPUT_DIR / filename
+    """Save chart to dated output directory (output/charts/YYYY-MM-DD/)."""
+    dated_dir = OUTPUT_DIR / date.today().isoformat()
+    dated_dir.mkdir(parents=True, exist_ok=True)
+    filepath = dated_dir / filename
     fig.savefig(filepath)
     plt.close(fig)
     return filepath
